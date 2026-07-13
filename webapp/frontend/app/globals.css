@@ -166,7 +166,7 @@ a:hover {
   margin: 0 0 16px;
 }
 .video-desc {
-  margin-top: 22px;
+  margin: 6px 0 22px; /* sits between the title and the player */
   background: var(--panel);
   border: 1px solid var(--border);
   border-left: 3px solid var(--accent);

@@ -59,20 +59,6 @@ export default function VideoPage({ params }: { params: { id: string } }) {
       ) : (
         <>
           <h1 className="video-title">{video.title}</h1>
-          {tokenError ? (
-            <div className="empty" style={{ color: "var(--danger)" }}>
-              Could not authorize playback: {tokenError}
-            </div>
-          ) : masterUrl ? (
-            <VideoPlayer
-              apkId={APK_ID}
-              masterUrl={masterUrl}
-              title={video.title}
-              watermark={watermark}
-            />
-          ) : (
-            <div className="empty">Authorizing playback…</div>
-          )}
           {video.description ? (
             <section className="video-desc">
               <h2 className="video-desc-label">Description</h2>
@@ -91,6 +77,20 @@ export default function VideoPage({ params }: { params: { id: string } }) {
               </div>
             </section>
           ) : null}
+          {tokenError ? (
+            <div className="empty" style={{ color: "var(--danger)" }}>
+              Could not authorize playback: {tokenError}
+            </div>
+          ) : masterUrl ? (
+            <VideoPlayer
+              apkId={APK_ID}
+              masterUrl={masterUrl}
+              title={video.title}
+              watermark={watermark}
+            />
+          ) : (
+            <div className="empty">Authorizing playback…</div>
+          )}
         </>
       )}
     </div>
