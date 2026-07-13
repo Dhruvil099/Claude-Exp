@@ -125,6 +125,8 @@ export const get = query({
       description: doc.description,
       status: doc.status,
       duration: doc.duration,
+      // Public metadata: admin-supplied external attachments (label + url).
+      resources: doc.resources ?? [],
     };
   },
 });
@@ -213,8 +215,9 @@ export const createVideo = action({
     rawStorageId: v.id("_storage"),
     title: v.string(),
     description: v.string(),
+    resources: v.optional(v.array(v.object({ label: v.string(), url: v.string() }))),
   },
-  handler: async (ctx, { rawStorageId, title, description }) => {
+  handler: async (ctx, { rawStorageId, title, description, resources }) => {
     const me = await ctx.runQuery(internal.videos.currentUser, {});
     if (!me || me.email !== process.env.ADMIN_EMAIL) {
       throw new Error("Admin only");
@@ -223,7 +226,7 @@ export const createVideo = action({
     // Insert the placeholder doc first so we have a videoId for the callback.
     const videoId: Id<"videos"> = await ctx.runMutation(
       internal.videos.insertProcessingVideo,
-      { title, description, createdBy: me.email },
+      { title, description, resources, createdBy: me.email },
     );
 
     // Resolve the uploaded raw file to a fetchable URL for the backend.
@@ -297,12 +300,14 @@ export const insertProcessingVideo = internalMutation({
   args: {
     title: v.string(),
     description: v.string(),
+    resources: v.optional(v.array(v.object({ label: v.string(), url: v.string() }))),
     createdBy: v.string(),
   },
-  handler: async (ctx, { title, description, createdBy }) => {
+  handler: async (ctx, { title, description, resources, createdBy }) => {
     return await ctx.db.insert("videos", {
       title,
       description,
+      resources,
       status: "processing",
       contentKey: "",
       iv: "",

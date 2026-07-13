@@ -15,9 +15,25 @@ export default function AdminPage() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [file, setFile] = useState<File | null>(null);
+  // Generic external attachments: label + url rows the admin can add/remove.
+  const [resources, setResources] = useState<{ label: string; url: string }[]>([]);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
+
+  function addResource() {
+    setResources((rows) => [...rows, { label: "", url: "" }]);
+  }
+
+  function removeResource(index: number) {
+    setResources((rows) => rows.filter((_, i) => i !== index));
+  }
+
+  function updateResource(index: number, field: "label" | "url", value: string) {
+    setResources((rows) =>
+      rows.map((row, i) => (i === index ? { ...row, [field]: value } : row)),
+    );
+  }
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -48,18 +64,25 @@ export default function AdminPage() {
       }
       const { storageId } = (await res.json()) as { storageId: string };
 
+      // Only keep rows where both the label and the url are filled in.
+      const cleanResources = resources
+        .map((r) => ({ label: r.label.trim(), url: r.url.trim() }))
+        .filter((r) => r.label && r.url);
+
       // 3) Kick off processing. createVideo inserts the doc and fires the
       //    backend /process job; it returns immediately with the videoId.
       await createVideo({
         rawStorageId: storageId as Id<"_storage">,
         title: title.trim(),
         description: description.trim(),
+        ...(cleanResources.length ? { resources: cleanResources } : {}),
       });
 
       setMsg("Uploaded. Processing has started — the video will appear once ready.");
       setTitle("");
       setDescription("");
       setFile(null);
+      setResources([]);
       // Reset the file input element.
       (e.target as HTMLFormElement).reset();
     } catch (e2: any) {
@@ -133,6 +156,44 @@ export default function AdminPage() {
                 />
                 <span className="field-hint">
                   Markdown is supported (headings, lists, links, tables…).
+                </span>
+              </div>
+
+              <div className="field">
+                <label>Resources / Attachments</label>
+                {resources.map((r, i) => (
+                  <div className="resource-row" key={i}>
+                    <input
+                      type="text"
+                      aria-label={`Resource ${i + 1} label`}
+                      value={r.label}
+                      onChange={(e) => updateResource(i, "label", e.target.value)}
+                      placeholder="Label (e.g. Course overview PDF)"
+                    />
+                    <input
+                      type="url"
+                      aria-label={`Resource ${i + 1} URL`}
+                      value={r.url}
+                      onChange={(e) => updateResource(i, "url", e.target.value)}
+                      placeholder="https://…"
+                    />
+                    <button
+                      type="button"
+                      className="btn resource-remove"
+                      aria-label={`Remove resource ${i + 1}`}
+                      onClick={() => removeResource(i)}
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+                <button type="button" className="btn" onClick={addResource}>
+                  + Add resource
+                </button>
+                <span className="field-hint">
+                  Optional external links (PDFs, docs, Drive…) shown below the
+                  description on the watch page. Rows missing a label or URL are
+                  ignored.
                 </span>
               </div>
 

@@ -55,5 +55,8 @@ export default defineSchema({
     // DrmPlayer + getDrmToken instead of the AES-128 tier. See DRM_SETUP.md.
     drmEnabled: v.optional(v.boolean()),
     drmManifestUrl: v.optional(v.string()), // DASH .mpd / HLS-fMP4 master
+    // Optional external resources/attachments (public metadata) shown on the
+    // watch page below the description. Admin-supplied label + URL pairs.
+    resources: v.optional(v.array(v.object({ label: v.string(), url: v.string() }))),
   }),
 });

@@ -109,6 +109,31 @@ export default function VideoPage({ params }: { params: { id: string } }) {
                 </div>
               </section>
             ) : null}
+            {video.resources?.length ? (
+              <section className="video-resources" aria-label="Resources">
+                <h2 className="video-desc-label">Resources</h2>
+                <ul className="resource-list">
+                  {video.resources.map((r, i) => (
+                    <li key={i}>
+                      <a
+                        className="resource-card"
+                        href={r.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <span className="resource-icon" aria-hidden="true">
+                          📄
+                        </span>
+                        <span className="resource-label">{r.label}</span>
+                        <span className="resource-ext" aria-hidden="true">
+                          ↗
+                        </span>
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ) : null}
             {tokenError ? (
               <div className="alert alert-danger" role="alert">
                 <span aria-hidden="true">⚠️</span>

@@ -682,6 +682,9 @@ a.card:focus-visible .card-play {
   font-size: 15px;
   line-height: 1.7;
   font-style: italic;
+  text-align: justify;
+  text-justify: inter-word;
+  hyphens: auto;
 }
 .video-desc-body > :first-child {
   margin-top: 0;
@@ -789,6 +792,84 @@ a.card:focus-visible .card-play {
   border-radius: var(--radius-sm);
 }
 
+/* ---------- Resources / Attachments ---------- */
+/* Sits below the description card, above the player. Each resource is a
+   tappable chip/row: icon, label, external-link arrow. */
+
+.video-resources {
+  margin: 0 0 24px; /* same rhythm as .video-desc */
+}
+.video-resources .video-desc-label {
+  margin-bottom: 12px;
+}
+
+.resource-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 10px;
+}
+
+.resource-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  color: var(--text);
+  text-decoration: none;
+  min-width: 0; /* let the label ellipsize inside the grid track */
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+.resource-card:hover {
+  background: var(--panel-2);
+  border-color: var(--border-strong);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+.resource-card:hover .resource-ext {
+  color: var(--accent-text);
+  transform: translate(1px, -1px);
+}
+
+.resource-icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  font-size: 16px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.resource-label {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.resource-ext {
+  flex: none;
+  color: var(--muted);
+  font-size: 14px;
+  transition: color 0.15s ease, transform 0.15s ease;
+}
+
 /* ---------- Player ---------- */
 
 .player-wrap {
@@ -888,6 +969,7 @@ video {
 }
 
 .field input[type="text"],
+.field input[type="url"],
 .field input[type="file"],
 .field textarea {
   width: 100%;
@@ -906,6 +988,7 @@ video {
   color: var(--muted-2);
 }
 .field input[type="text"]:focus-visible,
+.field input[type="url"]:focus-visible,
 .field input[type="file"]:focus-visible,
 .field textarea:focus-visible {
   outline: none;
@@ -938,6 +1021,23 @@ video {
   background: var(--panel-3);
 }
 
+/* Admin form: one editable resource row (label + url + remove). */
+.resource-row {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr) auto;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.resource-remove {
+  padding: 9px 13px;
+  font-size: 16px;
+  line-height: 1;
+}
+.field .btn {
+  margin-top: 2px;
+}
+
 /* ---------- Responsive ---------- */
 
 @media (max-width: 720px) {
@@ -957,6 +1057,20 @@ video {
   }
   .video-desc {
     padding: 16px 18px;
+  }
+  .resource-list {
+    grid-template-columns: 1fr; /* one attachment per row on small screens */
+  }
+  .resource-row {
+    grid-template-columns: 1fr auto; /* label+remove, url wraps below */
+  }
+  .resource-row input[type="url"] {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+  .resource-row .resource-remove {
+    grid-row: 1;
+    grid-column: 2;
   }
 }
 
