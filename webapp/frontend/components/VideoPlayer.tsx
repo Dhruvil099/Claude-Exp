@@ -2,18 +2,17 @@
 
 import { useEffect, useRef, useState } from "react";
 import Hls from "hls.js";
-import CryptoJS from "crypto-js";
 import Watermark from "./Watermark";
 
 /**
  * VideoPlayer — protected AES-128 HLS playback.
  *
- * The WrappedKeyLoader + unwrapKey + VARIANTS + u8ToWA/waToU8 below are ported
- * EXACTLY (byte-for-byte semantics) from hls_clone/www/player.html. hls.js
- * requests the AES-128 key from the backend's ".../k/timestamp[/<variant>]"
- * endpoint, which returns a freshly-randomized wrapped blob. We intercept that
- * request, run the two-stage AES-128-ECB unwrap using window.apkId, and hand
- * hls.js the real 16-byte content key.
+ * The AES-128 key served from ".../k/timestamp[/<variant>]" is a freshly
+ * randomized wrapped blob. The two-stage AES-128-ECB unwrap (keyed off
+ * window.apkId) does NOT live here — it ships as the separately obfuscated
+ * /vh-hls-core.min.js (parity with Spayee's obfuscated hls.min.js), which
+ * exposes window.__vhUnwrap(blob, url) -> 16-byte content key. We load that
+ * core, intercept the key request, and hand hls.js the real key.
  */
 
 type Props = {
@@ -24,56 +23,36 @@ type Props = {
   watermark?: string;
 };
 
-// ---- ported EXACTLY from hls_clone/www/player.html --------------------------
+const CORE_SRC = "/vh-hls-core.min.js";
 
-const hex = (u8: Uint8Array): string =>
-  [...u8].map((x) => x.toString(16).padStart(2, "0")).join("");
-
-// URI suffix after /timestamp/  ->  [g_range, v_range]   (identical to the origin)
-const VARIANTS: Record<string, [[number, number], [number, number]]> = {
-  "": [[32, 48], [0, 16]],
-  scw: [[32, 48], [0, 16]],
-  w1q: [[0, 16], [32, 48]],
-  sdq: [[32, 48], [8, 24]],
-  aav: [[48, 64], [0, 16]],
-  scs: [[48, 64], [16, 32]],
-  sxc: [[0, 16], [48, 64]],
-  q1wq: [[16, 32], [48, 64]],
-};
-
-const u8ToWA = (u8: Uint8Array) => CryptoJS.enc.Hex.parse(hex(u8));
-
-const waToU8 = (wa: CryptoJS.lib.WordArray): Uint8Array => {
-  const h = wa.toString(CryptoJS.enc.Hex);
-  const u = new Uint8Array(h.length / 2);
-  for (let i = 0; i < u.length; i++) u[i] = parseInt(h.substr(i * 2, 2), 16);
-  return u;
-};
-
-// The exact two-stage AES-128-ECB unwrap from Spayee's hls.min.js.
-function unwrapKey(blob: Uint8Array, url: string): Uint8Array {
-  const pp = url.includes("/k/timestamp/")
-    ? url.split("/k/timestamp/")[1].replace(/\/$/, "")
-    : "";
-  const [g, v] = VARIANTS[pp] || VARIANTS[""];
-  const cfg = { mode: CryptoJS.mode.ECB, padding: CryptoJS.pad.NoPadding };
-  const stage1 = CryptoJS.enc.Hex.parse(
-    window.apkId!.substring(0, 16) + window.apkId!.substring(48)
-  );
-  const inter = CryptoJS.AES.decrypt(
-    { ciphertext: u8ToWA(blob.subarray(g[0], g[1])) } as CryptoJS.lib.CipherParams,
-    stage1,
-    cfg
-  );
-  const realkey = CryptoJS.AES.decrypt(
-    { ciphertext: u8ToWA(blob.subarray(v[0], v[1])) } as CryptoJS.lib.CipherParams,
-    inter,
-    cfg
-  );
-  return waToU8(realkey);
+// Load the obfuscated unwrap core once; resolves when window.__vhUnwrap is ready.
+function loadUnwrapCore(): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (typeof window === "undefined") return reject(new Error("no window"));
+    if (window.__vhUnwrap) return resolve();
+    const settle = () =>
+      window.__vhUnwrap ? resolve() : reject(new Error("core missing unwrap"));
+    const existing = document.querySelector<HTMLScriptElement>(
+      "script[data-vh-core]"
+    );
+    if (existing) {
+      existing.addEventListener("load", settle);
+      existing.addEventListener("error", () =>
+        reject(new Error("core load failed"))
+      );
+      return;
+    }
+    const s = document.createElement("script");
+    s.src = CORE_SRC;
+    s.async = true;
+    s.setAttribute("data-vh-core", "");
+    s.onload = settle;
+    s.onerror = () => reject(new Error("core load failed"));
+    document.head.appendChild(s);
+  });
 }
 
-// hls.js loader that intercepts the key request and returns the unwrapped 16-byte key.
+// hls.js loader that intercepts the key request and returns the unwrapped key.
 function makeWrappedKeyLoader() {
   return class WrappedKeyLoader extends (Hls.DefaultConfig.loader as any) {
     load(context: any, config: any, callbacks: any) {
@@ -82,7 +61,8 @@ function makeWrappedKeyLoader() {
         callbacks = Object.assign({}, callbacks, {
           onSuccess: (resp: any, stats: any, ctx: any, net: any) => {
             const blob = new Uint8Array(resp.data);
-            const key = unwrapKey(blob, ctx.url);
+            // Delegated to the obfuscated core (window.__vhUnwrap).
+            const key = window.__vhUnwrap!(blob, ctx.url);
             resp.data = key.buffer;
             orig(resp, stats, ctx, net);
           },
@@ -94,8 +74,6 @@ function makeWrappedKeyLoader() {
   };
 }
 
-// -----------------------------------------------------------------------------
-
 export default function VideoPlayer({ apkId, masterUrl, title, watermark }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [error, setError] = useState<string | null>(null);
@@ -104,7 +82,7 @@ export default function VideoPlayer({ apkId, masterUrl, title, watermark }: Prop
     const video = videoRef.current;
     if (!video) return;
 
-    // Expose apkId to the ported unwrap logic (matches original player.html).
+    // Expose apkId to the obfuscated unwrap core (matches original player.html).
     window.apkId = apkId;
 
     if (!Hls.isSupported()) {
@@ -115,17 +93,28 @@ export default function VideoPlayer({ apkId, masterUrl, title, watermark }: Prop
       return;
     }
 
-    const hls = new Hls({ loader: makeWrappedKeyLoader() as any });
-    hls.loadSource(masterUrl);
-    hls.attachMedia(video);
-    hls.on(Hls.Events.ERROR, (_e, d) => {
-      if (d.fatal) {
-        setError(`Playback error: ${d.type} / ${d.details}`);
-      }
-    });
+    let hls: Hls | undefined;
+    let destroyed = false;
+
+    loadUnwrapCore()
+      .then(() => {
+        if (destroyed || !videoRef.current) return;
+        hls = new Hls({ loader: makeWrappedKeyLoader() as any });
+        hls.loadSource(masterUrl);
+        hls.attachMedia(videoRef.current);
+        hls.on(Hls.Events.ERROR, (_e, d) => {
+          if (d.fatal) {
+            setError(`Playback error: ${d.type} / ${d.details}`);
+          }
+        });
+      })
+      .catch(() =>
+        setError("Could not load the player. Please refresh and try again.")
+      );
 
     return () => {
-      hls.destroy();
+      destroyed = true;
+      if (hls) hls.destroy();
     };
   }, [apkId, masterUrl]);
 
