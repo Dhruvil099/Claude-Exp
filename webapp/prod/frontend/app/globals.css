@@ -681,6 +681,7 @@ a.card:focus-visible .card-play {
   color: var(--text);
   font-size: 15px;
   line-height: 1.7;
+  font-style: italic;
 }
 .video-desc-body > :first-child {
   margin-top: 0;
