@@ -130,12 +130,13 @@ export default function VideoPlayer({ apkId, masterUrl, title, watermark }: Prop
   }, [apkId, masterUrl]);
 
   return (
-    <div>
+    <section aria-label={`Video player: ${title}`}>
       <div className="player-wrap">
         <video
           ref={videoRef}
           controls
           playsInline
+          aria-label={title}
           controlsList="nodownload noremoteplayback"
           disablePictureInPicture
           // No downloads: block the right-click context menu on the video.
@@ -147,14 +148,18 @@ export default function VideoPlayer({ apkId, masterUrl, title, watermark }: Prop
 
       {/* Required visible notice — free to watch, streaming only. */}
       <div className="notice">
+        <span className="notice-icon" aria-hidden="true">
+          🔒
+        </span>
         <strong>Video not available for download — streaming only.</strong>
       </div>
 
       {error && (
-        <div className="notice" style={{ color: "var(--danger)" }}>
-          {error}
+        <div className="alert alert-danger" role="alert">
+          <span aria-hidden="true">⚠️</span>
+          <span>{error}</span>
         </div>
       )}
-    </div>
+    </section>
   );
 }

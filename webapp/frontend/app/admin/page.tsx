@@ -71,71 +71,102 @@ export default function AdminPage() {
 
   return (
     <div className="container">
-      <div className="topbar">
+      <header className="topbar">
         <div className="brand">
           <Link href="/">
+            <span className="logo-mark" aria-hidden="true" />
             Video<span>Hub</span>
           </Link>
         </div>
         <Link className="btn" href="/">
-          Back
+          ← Back to library
         </Link>
-      </div>
+      </header>
 
-      {isAdmin === undefined ? (
-        <div className="empty">Loading…</div>
-      ) : !isAdmin ? (
-        <div className="empty">Not authorized.</div>
-      ) : (
-        <>
-          <h1>Upload a video</h1>
-          <form className="form" onSubmit={onSubmit}>
-            <div className="field">
-              <label htmlFor="title">Title</label>
-              <input
-                id="title"
-                type="text"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="Intro to something"
-              />
+      <main>
+        {isAdmin === undefined ? (
+          <div className="center" style={{ minHeight: "40vh" }} role="status">
+            <div className="spinner" />
+            <p className="muted">Loading…</p>
+          </div>
+        ) : !isAdmin ? (
+          <div className="empty">
+            <div className="empty-icon" aria-hidden="true">
+              🔒
             </div>
-
-            <div className="field">
-              <label htmlFor="description">Description</label>
-              <textarea
-                id="description"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="What this video covers…"
-              />
+            <p className="empty-title">Not authorized</p>
+            <p>This page is for admins only.</p>
+            <Link className="btn" href="/">
+              Back to library
+            </Link>
+          </div>
+        ) : (
+          <>
+            <div className="page-head">
+              <div>
+                <h1 className="page-title">Upload a video</h1>
+                <p className="page-sub">
+                  The video is encrypted and packaged for streaming after upload.
+                </p>
+              </div>
             </div>
+            <form className="form" onSubmit={onSubmit}>
+              <div className="field">
+                <label htmlFor="title">Title</label>
+                <input
+                  id="title"
+                  type="text"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="Intro to something"
+                  required
+                />
+              </div>
 
-            <div className="field">
-              <label htmlFor="file">Video file</label>
-              <input
-                id="file"
-                type="file"
-                accept="video/*"
-                onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-              />
-            </div>
+              <div className="field">
+                <label htmlFor="description">Description</label>
+                <textarea
+                  id="description"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="What this video covers…"
+                />
+                <span className="field-hint">
+                  Markdown is supported (headings, lists, links, tables…).
+                </span>
+              </div>
 
-            <button className="btn btn-primary" type="submit" disabled={busy}>
-              {busy ? "Uploading…" : "Upload"}
-            </button>
+              <div className="field">
+                <label htmlFor="file">Video file</label>
+                <input
+                  id="file"
+                  type="file"
+                  accept="video/*"
+                  onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+                  required
+                />
+              </div>
 
-            {msg && (
-              <p className="muted" style={{ marginTop: 14 }}>
-                {msg}
-              </p>
-            )}
-            {err && (
-              <p style={{ marginTop: 14, color: "var(--danger)" }}>{err}</p>
-            )}
-          </form>
-        </>
-      )}
+              <button className="btn btn-primary" type="submit" disabled={busy}>
+                {busy ? "Uploading…" : "Upload"}
+              </button>
+
+              {msg && (
+                <div className="alert alert-success" role="status">
+                  <span aria-hidden="true">✓</span>
+                  <span>{msg}</span>
+                </div>
+              )}
+              {err && (
+                <div className="alert alert-danger" role="alert">
+                  <span aria-hidden="true">⚠️</span>
+                  <span>{err}</span>
+                </div>
+              )}
+            </form>
+          </>
+        )}
+      </main>
     </div>
   );
 }

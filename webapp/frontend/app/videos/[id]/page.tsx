@@ -35,64 +35,109 @@ export default function VideoPage({ params }: { params: { id: string } }) {
     }
   }, [video, masterUrl, getStreamToken, videoId]);
 
+  // Reflect the video title in the browser tab.
+  useEffect(() => {
+    if (video?.title) {
+      document.title = `${video.title} — VideoHub`;
+    }
+  }, [video?.title]);
+
   return (
     <div className="container">
-      <div className="topbar">
+      <header className="topbar">
         <div className="brand">
           <Link href="/">
+            <span className="logo-mark" aria-hidden="true" />
             Video<span>Hub</span>
           </Link>
         </div>
         <Link className="btn" href="/">
-          Back
+          ← Back to library
         </Link>
-      </div>
+      </header>
 
-      {video === undefined ? (
-        <div className="empty">Loading…</div>
-      ) : video === null ? (
-        <div className="empty">Video not found.</div>
-      ) : video.status !== "ready" ? (
-        <div className="empty">
-          This video is still {video.status}. Please check back soon.
-        </div>
-      ) : (
-        <>
-          <h1 className="video-title">{video.title}</h1>
-          {video.description ? (
-            <section className="video-desc">
-              <h2 className="video-desc-label">Description</h2>
-              <div className="video-desc-body">
-                <ReactMarkdown
-                  remarkPlugins={[remarkGfm]}
-                  components={{
-                    // Open any links in a new tab, safely.
-                    a: (props) => (
-                      <a {...props} target="_blank" rel="noopener noreferrer" />
-                    ),
-                  }}
-                >
-                  {video.description}
-                </ReactMarkdown>
-              </div>
-            </section>
-          ) : null}
-          {tokenError ? (
-            <div className="empty" style={{ color: "var(--danger)" }}>
-              Could not authorize playback: {tokenError}
-            </div>
-          ) : masterUrl ? (
-            <VideoPlayer
-              apkId={APK_ID}
-              masterUrl={masterUrl}
-              title={video.title}
-              watermark={watermark}
+      <main className="watch-layout">
+        {video === undefined ? (
+          <div aria-busy="true" aria-label="Loading video">
+            <div
+              className="skeleton skeleton-block"
+              style={{ height: 34, maxWidth: 420, marginBottom: 18 }}
             />
-          ) : (
-            <div className="empty">Authorizing playback…</div>
-          )}
-        </>
-      )}
+            <div
+              className="skeleton skeleton-block"
+              style={{ height: 96, marginBottom: 24 }}
+            />
+            <div className="skeleton skeleton-block" style={{ aspectRatio: "16 / 9" }} />
+          </div>
+        ) : video === null ? (
+          <div className="empty">
+            <div className="empty-icon" aria-hidden="true">
+              🔍
+            </div>
+            <p className="empty-title">Video not found</p>
+            <p>It may have been removed or the link is incorrect.</p>
+            <Link className="btn" href="/">
+              Back to library
+            </Link>
+          </div>
+        ) : video.status !== "ready" ? (
+          <div className="empty">
+            <div className="empty-icon" aria-hidden="true">
+              ⏳
+            </div>
+            <p className="empty-title">Not ready yet</p>
+            <p>This video is still {video.status}. Please check back soon.</p>
+          </div>
+        ) : (
+          <>
+            <h1 className="video-title">{video.title}</h1>
+            {video.description ? (
+              <section className="video-desc" aria-label="Video description">
+                <h2 className="video-desc-label">Description</h2>
+                <div className="video-desc-body">
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm]}
+                    components={{
+                      // Open any links in a new tab, safely.
+                      a: (props) => (
+                        <a {...props} target="_blank" rel="noopener noreferrer" />
+                      ),
+                    }}
+                  >
+                    {video.description}
+                  </ReactMarkdown>
+                </div>
+              </section>
+            ) : null}
+            {tokenError ? (
+              <div className="alert alert-danger" role="alert">
+                <span aria-hidden="true">⚠️</span>
+                <span>Could not authorize playback: {tokenError}</span>
+              </div>
+            ) : masterUrl ? (
+              <VideoPlayer
+                apkId={APK_ID}
+                masterUrl={masterUrl}
+                title={video.title}
+                watermark={watermark}
+              />
+            ) : (
+              <div>
+                {/* Same fixed 16:9 footprint as the player so nothing jumps. */}
+                <div
+                  className="skeleton skeleton-block"
+                  style={{ aspectRatio: "16 / 9" }}
+                  role="status"
+                  aria-label="Authorizing playback"
+                />
+                <p className="muted" style={{ marginTop: 12, textAlign: "center" }}>
+                  Authorizing playback…
+                </p>
+              </div>
+            )}
+          </>
+        )}
+      </main>
     </div>
   );
 }

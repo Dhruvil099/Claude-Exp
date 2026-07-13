@@ -11,7 +11,7 @@ function SignInButton() {
   const { signIn } = useAuthActions();
   return (
     <button
-      className="btn btn-primary"
+      className="btn btn-primary btn-lg"
       // Convex Auth Google provider id is "google".
       onClick={() => void signIn("google")}
     >
@@ -24,7 +24,7 @@ function GuestButton() {
   const { signIn } = useAuthActions();
   // Convex Auth Anonymous provider id is "anonymous" — no email/password.
   return (
-    <button className="btn" onClick={() => void signIn("anonymous")}>
+    <button className="btn btn-lg" onClick={() => void signIn("anonymous")}>
       Continue as guest
     </button>
   );
@@ -49,57 +49,100 @@ function statusBadge(status: string) {
   return <span className={cls}>{status}</span>;
 }
 
+function SkeletonCard() {
+  return (
+    <div className="skeleton-card" aria-hidden="true">
+      <div className="skeleton skeleton-thumb" />
+      <div className="skeleton-lines">
+        <div className="skeleton skeleton-line w-70" />
+        <div className="skeleton skeleton-line w-90" />
+        <div className="skeleton skeleton-line w-40" />
+      </div>
+    </div>
+  );
+}
+
 function VideoGrid() {
   const videos = useQuery(api.videos.list);
   const isAdmin = useQuery(api.videos.isAdmin);
 
   return (
     <div className="container">
-      <div className="topbar">
+      <header className="topbar">
         <div className="brand">
+          <span className="logo-mark" aria-hidden="true" />
           Video<span>Hub</span>
         </div>
-        <div className="row">
+        <nav className="row" aria-label="Account">
           {isAdmin && (
             <Link className="btn" href="/admin">
               Admin
             </Link>
           )}
           <SignOutButton />
-        </div>
-      </div>
+        </nav>
+      </header>
 
-      {videos === undefined ? (
-        <div className="empty">Loading…</div>
-      ) : videos.length === 0 ? (
-        <div className="empty">No videos yet. Check back soon.</div>
-      ) : (
-        <div className="grid">
-          {videos.map((v) => {
-            const ready = v.status === "ready";
-            const inner = (
-              <>
-                <h3>{v.title}</h3>
-                <p>{v.description}</p>
-                {statusBadge(v.status)}
-              </>
-            );
-            return ready ? (
-              <Link key={v._id} className="card" href={`/videos/${v._id}`}>
-                {inner}
-              </Link>
-            ) : (
-              <div
-                key={v._id}
-                className="card"
-                style={{ cursor: "default", opacity: 0.7 }}
-              >
-                {inner}
-              </div>
-            );
-          })}
+      <main>
+        <div className="page-head">
+          <div>
+            <h1 className="page-title">Library</h1>
+            <p className="page-sub">
+              {videos === undefined
+                ? "Loading your videos…"
+                : `${videos.length} video${videos.length === 1 ? "" : "s"} available`}
+            </p>
+          </div>
         </div>
-      )}
+
+        {videos === undefined ? (
+          <div className="grid" aria-busy="true" aria-label="Loading videos">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <SkeletonCard key={i} />
+            ))}
+          </div>
+        ) : videos.length === 0 ? (
+          <div className="empty">
+            <div className="empty-icon" aria-hidden="true">
+              🎬
+            </div>
+            <p className="empty-title">No videos yet</p>
+            <p>New content is on the way — check back soon.</p>
+          </div>
+        ) : (
+          <div className="grid">
+            {videos.map((v) => {
+              const ready = v.status === "ready";
+              const inner = (
+                <>
+                  <div className="card-thumb" aria-hidden="true">
+                    {ready && <span className="card-play" />}
+                  </div>
+                  <div className="card-body">
+                    <h3>{v.title}</h3>
+                    {v.description ? <p>{v.description}</p> : null}
+                    <div className="card-meta">{statusBadge(v.status)}</div>
+                  </div>
+                </>
+              );
+              return ready ? (
+                <Link
+                  key={v._id}
+                  className="card"
+                  href={`/videos/${v._id}`}
+                  aria-label={`Watch ${v.title}`}
+                >
+                  {inner}
+                </Link>
+              ) : (
+                <div key={v._id} className="card card-disabled" aria-disabled="true">
+                  {inner}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </main>
     </div>
   );
 }
@@ -108,19 +151,31 @@ export default function HomePage() {
   const { isAuthenticated, isLoading } = useConvexAuth();
 
   if (isLoading) {
-    return <div className="center">Loading…</div>;
+    return (
+      <div className="center" role="status" aria-label="Loading">
+        <div className="spinner" />
+        <p className="muted">Loading…</p>
+      </div>
+    );
   }
 
   if (!isAuthenticated) {
     return (
-      <div className="center">
-        <div className="brand" style={{ fontSize: 34 }}>
+      <main className="center">
+        <span className="logo-mark logo-mark-lg" aria-hidden="true" />
+        <h1 className="brand hero-brand">
           Video<span>Hub</span>
+        </h1>
+        <p className="hero-tagline">
+          Free video courses, streamed securely. Sign in to start watching — or jump
+          right in as a guest.
+        </p>
+        <div className="hero-actions">
+          <SignInButton />
+          <GuestButton />
         </div>
-        <p className="muted">Free video courses. Sign in, or continue as a guest.</p>
-        <SignInButton />
-        <GuestButton />
-      </div>
+        <p className="hero-footnote">Streaming only — videos are never downloadable.</p>
+      </main>
     );
   }
 
