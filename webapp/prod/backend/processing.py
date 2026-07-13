@@ -29,17 +29,26 @@ from convex_client import save_video_result, upload_bytes, file_url, invalidate_
 # this is only a target. No -force_key_frames (that would require re-encoding).
 _HLS_TIME = "2"
 
-# Single LOSSLESS rendition: remux the source's own video+audio bitstreams straight
-# into encrypted MPEG-TS segments (-c copy). No transcoding => zero quality loss and
-# cheap enough to run on constrained CPU (Render free tier). "0:a:0?" makes audio
-# optional, so a source with no audio track still processes. codecs is "" (the schema
-# requires a string; build_master omits the CODECS attr when empty and lets the player
-# detect the codecs from the segments). bandwidth is filled in from the source bitrate.
+# Two LOSSLESS renditions (both -c copy, NO transcode): a video-only stream and a
+# separate audio-only stream + EXT-X-MEDIA audio group — exactly Spayee's layout.
+# Copying (not re-encoding) keeps it cheap on constrained CPU (Render free tier) and
+# preserves original quality. The audio rendition is produced ONLY when the source has
+# an audio track (see _has_audio); a silent source yields just the video rendition and
+# build_master then omits the audio group. codecs is "" (the schema requires a string;
+# build_master omits the CODECS attr when empty and lets the player detect the codec).
 _RENDITIONS: list[dict[str, Any]] = [
     {
-        "name": "hls_",
-        "ff": ["-map", "0:v:0", "-map", "0:a:0?", "-c", "copy"],
+        "name": "hls_v_",
+        "ff": ["-map", "0:v:0", "-c", "copy"],
         "isAudio": False,
+        "bandwidth": 0,   # filled in from the measured source bitrate
+        "codecs": "",
+    },
+    {
+        "name": "hls_audio_",
+        "ff": ["-map", "0:a:0", "-c", "copy"],
+        "isAudio": True,
+        "groupId": "audio-0",
         "bandwidth": 0,
         "codecs": "",
     },
@@ -92,6 +101,17 @@ async def _probe_duration(src: str) -> float:
         return float(out.decode().strip())
     except (ValueError, AttributeError):
         return 0.0
+
+
+async def _has_audio(src: str) -> bool:
+    """True if the source has at least one audio stream."""
+    proc = await asyncio.create_subprocess_exec(
+        "ffprobe", "-v", "error", "-select_streams", "a",
+        "-show_entries", "stream=index", "-of", "csv=p=0", src,
+        stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
+    )
+    out, _ = await proc.communicate()
+    return bool(out.strip())
 
 
 def _parse_playlist(m3u8_path: str) -> list[tuple[str, float]]:
@@ -175,14 +195,19 @@ async def process_video(video_id: str, raw_url: str) -> None:
         duration = await _probe_duration(src)
         src_bytes = os.path.getsize(src)
         bitrate = int(src_bytes * 8 / duration) if duration > 0 else 0
-        log(f"probed duration={duration}s, ~{bitrate} bps")
+        has_audio = await _has_audio(src)
+        log(f"probed duration={duration}s, ~{bitrate} bps, audio={has_audio}")
+
+        # Drop the audio-only rendition when the source has no audio track.
+        specs = [s for s in _RENDITIONS if (not s["isAudio"]) or has_audio]
 
         renditions: list[dict[str, Any]] = []
-        for spec in _RENDITIONS:
+        for spec in specs:
             log(f"rendering {spec['name']} ...")
             r = await _render_one(src, work_root, spec, K, IV)
-            # BANDWIDTH must be a sane non-zero number for the master playlist.
-            if not r.get("bandwidth"):
+            # BANDWIDTH must be a sane non-zero number on the video STREAM-INF
+            # (it represents the combined peak incl. the alternate audio group).
+            if not spec["isAudio"] and not r.get("bandwidth"):
                 r["bandwidth"] = bitrate or 1_000_000
             log(f"{spec['name']} done: {len(r['segments'])} segments")
             renditions.append(r)
