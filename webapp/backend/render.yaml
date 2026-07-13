@@ -1,0 +1,29 @@
+# VideoHub — Render Blueprint for the FastAPI backend.
+# Docker web service (the Dockerfile installs ffmpeg, which /process needs for transcoding).
+# Render → New → Blueprint → point at this repo. Set the sync:false env vars in the dashboard.
+services:
+  - type: web
+    name: videohub-backend
+    runtime: docker
+    # Build the image from backend/Dockerfile (owned by the backend agent; installs ffmpeg).
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: starter
+    healthCheckPath: /
+    autoDeploy: true
+    envVars:
+      # The *.convex.site HTTP-actions origin (NOT *.convex.cloud).
+      - key: CONVEX_SITE_URL
+        sync: false
+      # Shared server-to-server secret; MUST equal Convex's ADMIN_SHARED_SECRET (X-Admin-Secret header).
+      - key: ADMIN_SHARED_SECRET
+        sync: false
+      # This service's own public https URL (fill in after the first deploy).
+      - key: PUBLIC_BACKEND_URL
+        sync: false
+      # The frontend origin, for CORS.
+      - key: FRONTEND_ORIGIN
+        sync: false
+      # Port the app binds to; Render provides this at runtime.
+      - key: PORT
+        value: 8000

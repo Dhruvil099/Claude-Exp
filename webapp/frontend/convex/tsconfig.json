@@ -1,0 +1,20 @@
+{
+  /* This TypeScript project config applies to the Convex functions directory.
+     It ensures the correct DOM/ES libs and module resolution for Convex. */
+  "compilerOptions": {
+    "allowJs": true,
+    "strict": true,
+    "moduleResolution": "Bundler",
+    "jsx": "react-jsx",
+    "skipLibCheck": true,
+    "allowSyntheticDefaultImports": true,
+    "module": "ESNext",
+    "target": "ESNext",
+    "lib": ["ES2021", "DOM", "DOM.Iterable"],
+    "forceConsistentCasingInFileNames": true,
+    "isolatedModules": true,
+    "noEmit": true
+  },
+  "include": ["./**/*"],
+  "exclude": ["./_generated"]
+}

@@ -1,0 +1,58 @@
+# ---- secrets / credentials (NEVER commit) ----
+.env
+.env.*
+!.env.example
+!.env.local.example
+**/secrets.json
+realkey.bin
+webapp/restore_ngrok.sh
+
+# ---- dependencies / build output ----
+node_modules/
+.venv/
+venv/
+.next/
+_generated/
+__pycache__/
+*.pyc
+*.tsbuildinfo
+
+# ---- large / downloaded / generated media (copyrighted or bulky) ----
+*.mp4
+*.bin
+*.log
+/*.m3u8
+/seg*.ts
+/dec_*.ts
+/video.ts
+/audio.ts
+/a.ts
+/v.ts
+hls.player.js
+
+# ---- segment / work directories ----
+dl/
+dl_v/
+dl_a/
+hls_clone/dl/
+hls_clone/www/_plain/
+hls_clone/www/*.ts
+hls_clone/www/*.m3u8
+
+# ---- os ----
+.DS_Store
+
+# unrelated embedded project (its own git repo)
+/PuzzleEval
+
+# extracted video frames (copyrighted)
+frame_check*.jpg
+
+# download / circumvention scripts — NOT published
+/spayee_dl.py
+/unwrap_key.py
+/build.py
+/webapp/videohub_dl.py
+
+# standalone reference/demo of the wrapped-key scheme — NOT published
+/hls_clone/

@@ -1,0 +1,44 @@
+# ---- Node / Next.js (frontend) ----
+node_modules/
+.next/
+out/
+.vercel/
+*.tsbuildinfo
+next-env.d.ts
+
+# ---- Convex generated code ----
+_generated/
+**/convex/_generated/
+
+# ---- Python / FastAPI (backend) ----
+__pycache__/
+*.py[cod]
+venv/
+.venv/
+env/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# ---- Env files (never commit secrets) ----
+.env
+.env.*
+!.env.example
+!.env.local.example
+
+# ---- Media / transcode scratch ----
+# (NOTE: do NOT use *.ts here — it would ignore TypeScript source. MPEG-TS
+#  segment work-dirs are ignored at the repo root instead.)
+*.mp4
+tmp/
+uploads/
+
+# ---- Logs ----
+*.log
+
+# ---- OS / editor ----
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
