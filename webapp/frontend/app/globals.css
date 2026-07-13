@@ -674,12 +674,13 @@ a.card:focus-visible .card-play {
   color: var(--accent-text);
 }
 
-/* Markdown-rendered description body. */
+/* Markdown-rendered description body. Fills the description card (which already
+   provides a bounded reading width via .watch-layout) — no inner max-width, else
+   the text stops ~60% across and leaves an awkward empty gap on the card's right. */
 .video-desc-body {
   color: var(--text);
   font-size: 15px;
   line-height: 1.7;
-  max-width: 72ch; /* comfortable reading measure */
 }
 .video-desc-body > :first-child {
   margin-top: 0;
