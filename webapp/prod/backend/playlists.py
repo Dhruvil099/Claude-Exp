@@ -43,7 +43,12 @@ def build_master(renditions: list[dict[str, Any]]) -> str:
     videos = [r for r in renditions if not r.get("isAudio")]
     videos.sort(key=lambda r: r.get("bandwidth", 0))
     for r in videos:
-        attrs = [f'AUDIO="{AUDIO_GROUP_ID}"', f'BANDWIDTH={int(r.get("bandwidth", 0))}']
+        attrs = [f'BANDWIDTH={int(r.get("bandwidth", 0))}']
+        # Only reference the audio group when a separate audio rendition exists.
+        # (A single muxed remux rendition carries its own audio — referencing a
+        # non-existent group would make hls.js error "group-id not found".)
+        if audio is not None:
+            attrs.insert(0, f'AUDIO="{AUDIO_GROUP_ID}"')
         if r.get("codecs"):
             attrs.append(f'CODECS="{r["codecs"]}"')
         if r.get("resolution"):

@@ -24,35 +24,24 @@ from Crypto.Util.Padding import pad
 
 from convex_client import save_video_result, upload_bytes, file_url, invalidate_key_cache
 
-# Keyframe alignment so segments cut cleanly every 2s (Spayee segments avg ~2.4s).
-_KF = ["-force_key_frames", "expr:gte(t,n_forced*2)"]
+# HLS segment target. With -c copy (remux, no re-encode) ffmpeg can only split on
+# the source's existing keyframes, so real segment lengths follow the source GOP —
+# this is only a target. No -force_key_frames (that would require re-encoding).
 _HLS_TIME = "2"
 
-# (name, ffmpeg args, rendition metadata) for the three renditions.
+# Single LOSSLESS rendition: remux the source's own video+audio bitstreams straight
+# into encrypted MPEG-TS segments (-c copy). No transcoding => zero quality loss and
+# cheap enough to run on constrained CPU (Render free tier). "0:a:0?" makes audio
+# optional, so a source with no audio track still processes. codecs is "" (the schema
+# requires a string; build_master omits the CODECS attr when empty and lets the player
+# detect the codecs from the segments). bandwidth is filled in from the source bitrate.
 _RENDITIONS: list[dict[str, Any]] = [
     {
-        "name": "hls_1M_",
-        "ff": ["-map", "0:v:0", "-an", "-c:v", "libx264", "-b:v", "1M", "-s", "1280x720"] + _KF,
+        "name": "hls_",
+        "ff": ["-map", "0:v:0", "-map", "0:a:0?", "-c", "copy"],
         "isAudio": False,
-        "bandwidth": 900000,
-        "resolution": "1280x720",
-        "codecs": "avc1.64001f,mp4a.40.2",
-    },
-    {
-        "name": "hls_500k_",
-        "ff": ["-map", "0:v:0", "-an", "-c:v", "libx264", "-b:v", "500k", "-s", "852x480"] + _KF,
-        "isAudio": False,
-        "bandwidth": 650000,
-        "resolution": "852x480",
-        "codecs": "avc1.64001f,mp4a.40.2",
-    },
-    {
-        "name": "hls_audio_",
-        "ff": ["-map", "0:a:0", "-vn", "-c:a", "aac", "-b:a", "96k"],
-        "isAudio": True,
-        "groupId": "audio-0",
-        "bandwidth": 96000,
-        "codecs": "mp4a.40.2",
+        "bandwidth": 0,
+        "codecs": "",
     },
 ]
 
@@ -184,12 +173,17 @@ async def process_video(video_id: str, raw_url: str) -> None:
         log(f"downloaded {os.path.getsize(src)} bytes")
 
         duration = await _probe_duration(src)
-        log(f"probed duration={duration}s")
+        src_bytes = os.path.getsize(src)
+        bitrate = int(src_bytes * 8 / duration) if duration > 0 else 0
+        log(f"probed duration={duration}s, ~{bitrate} bps")
 
         renditions: list[dict[str, Any]] = []
         for spec in _RENDITIONS:
             log(f"rendering {spec['name']} ...")
             r = await _render_one(src, work_root, spec, K, IV)
+            # BANDWIDTH must be a sane non-zero number for the master playlist.
+            if not r.get("bandwidth"):
+                r["bandwidth"] = bitrate or 1_000_000
             log(f"{spec['name']} done: {len(r['segments'])} segments")
             renditions.append(r)
 
