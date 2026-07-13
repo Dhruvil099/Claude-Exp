@@ -20,6 +20,16 @@ function SignInButton() {
   );
 }
 
+function GuestButton() {
+  const { signIn } = useAuthActions();
+  // Convex Auth Anonymous provider id is "anonymous" — no email/password.
+  return (
+    <button className="btn" onClick={() => void signIn("anonymous")}>
+      Continue as guest
+    </button>
+  );
+}
+
 function SignOutButton() {
   const { signOut } = useAuthActions();
   return (
@@ -107,8 +117,9 @@ export default function HomePage() {
         <div className="brand" style={{ fontSize: 34 }}>
           Video<span>Hub</span>
         </div>
-        <p className="muted">Free video courses. Sign in to start watching.</p>
+        <p className="muted">Free video courses. Sign in, or continue as a guest.</p>
         <SignInButton />
+        <GuestButton />
       </div>
     );
   }
