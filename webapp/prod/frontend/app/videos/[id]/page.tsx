@@ -56,10 +56,7 @@ export default function VideoPage({ params }: { params: { id: string } }) {
         </div>
       ) : (
         <>
-          <h1 style={{ marginBottom: 6 }}>{video.title}</h1>
-          <p className="muted" style={{ marginTop: 0, marginBottom: 18 }}>
-            {video.description}
-          </p>
+          <h1 className="video-title">{video.title}</h1>
           {tokenError ? (
             <div className="empty" style={{ color: "var(--danger)" }}>
               Could not authorize playback: {tokenError}
@@ -74,6 +71,12 @@ export default function VideoPage({ params }: { params: { id: string } }) {
           ) : (
             <div className="empty">Authorizing playback…</div>
           )}
+          {video.description ? (
+            <section className="video-desc">
+              <h2 className="video-desc-label">Description</h2>
+              <p>{video.description}</p>
+            </section>
+          ) : null}
         </>
       )}
     </div>

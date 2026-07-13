@@ -158,6 +158,37 @@ a:hover {
 }
 
 /* Player page */
+.video-title {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  margin: 0 0 16px;
+}
+.video-desc {
+  margin-top: 22px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 12px;
+  padding: 16px 20px 18px;
+}
+.video-desc-label {
+  margin: 0 0 10px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.video-desc p {
+  margin: 0;
+  color: var(--text);
+  font-size: 15px;
+  line-height: 1.7;
+  white-space: pre-line; /* preserve line breaks typed into the description */
+  max-width: 72ch; /* comfortable reading measure */
+}
 .player-wrap {
   position: relative; /* positioning context for the watermark overlay */
   background: #000;
