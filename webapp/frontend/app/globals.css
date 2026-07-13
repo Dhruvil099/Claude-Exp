@@ -164,6 +164,10 @@ a:hover {
   border-radius: 12px;
   overflow: hidden;
   border: 1px solid var(--border);
+  /* Fixed 16:9 box so the player has the SAME size before and after the stream
+     loads (otherwise the <video> starts at its 2:1 intrinsic size, then jumps). */
+  width: 100%;
+  aspect-ratio: 16 / 9;
 }
 
 /* Per-user leak-tracing watermark (Spayee-style faint moving overlay). */
@@ -181,8 +185,12 @@ a:hover {
 }
 video {
   display: block;
+  /* Fill the fixed 16:9 wrapper; letterbox non-16:9 sources instead of resizing. */
+  position: absolute;
+  inset: 0;
   width: 100%;
-  max-height: 70vh;
+  height: 100%;
+  object-fit: contain;
   background: #000;
 }
 .notice {
