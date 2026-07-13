@@ -137,6 +137,7 @@ async def _render_one(
     )
 
     seg_list = _parse_playlist(os.path.join(tmp, f"{name}.m3u8"))
+    print(f"[render {name}] ffmpeg OK, {len(seg_list)} segments -> uploading", flush=True)
 
     out_segments: list[dict[str, Any]] = []
     for seg_name, dur in seg_list:
@@ -163,19 +164,36 @@ async def _render_one(
 
 
 async def process_video(video_id: str, raw_url: str) -> None:
-    """Full pipeline. Always reports a terminal status back to Convex."""
+    """Full pipeline. Always reports a terminal status back to Convex.
+
+    Logs each step (FastAPI BackgroundTasks otherwise swallow exceptions, so a
+    failure would be invisible in the server logs).
+    """
+    import traceback
+
+    def log(msg: str) -> None:
+        print(f"[process_video {video_id}] {msg}", flush=True)
+
+    log("START")
     work_root = tempfile.mkdtemp(prefix=f"vhub_{video_id}_")
     K, IV = _gen_key_material()
     try:
         src = os.path.join(work_root, "source.input")
+        log(f"downloading raw: {raw_url[:90]}")
         await _download(raw_url, src)
+        log(f"downloaded {os.path.getsize(src)} bytes")
 
         duration = await _probe_duration(src)
+        log(f"probed duration={duration}s")
 
         renditions: list[dict[str, Any]] = []
         for spec in _RENDITIONS:
-            renditions.append(await _render_one(src, work_root, spec, K, IV))
+            log(f"rendering {spec['name']} ...")
+            r = await _render_one(src, work_root, spec, K, IV)
+            log(f"{spec['name']} done: {len(r['segments'])} segments")
+            renditions.append(r)
 
+        log("saving result (status=ready)")
         await save_video_result(
             video_id=video_id,
             contentKey=K.hex(),
@@ -185,22 +203,18 @@ async def process_video(video_id: str, raw_url: str) -> None:
             renditions=renditions,
             status="ready",
         )
-        # Fresh key material now lives in Convex; drop any stale cache entry.
         invalidate_key_cache(video_id)
-    except Exception as exc:  # noqa: BLE001 - report every failure back to Convex
+        log("DONE ✓")
+    except Exception:  # noqa: BLE001 - report every failure back to Convex + logs
+        log("FAILED — traceback:")
+        traceback.print_exc()
         try:
             await save_video_result(
-                video_id=video_id,
-                contentKey="",
-                iv="",
-                keyVariant="",
-                duration=0,
-                renditions=[],
-                status="failed",
+                video_id=video_id, contentKey="", iv="", keyVariant="",
+                duration=0, renditions=[], status="failed",
             )
         except Exception:  # noqa: BLE001 - best-effort failure report
-            pass
-        # Re-raise so the error is visible in server logs.
-        raise RuntimeError(f"process_video({video_id}) failed: {exc}") from exc
+            log("could not report 'failed' status to Convex either:")
+            traceback.print_exc()
     finally:
         shutil.rmtree(work_root, ignore_errors=True)
