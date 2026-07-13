@@ -38,7 +38,10 @@ _HLS_TIME = "2"
 # build_master omits the CODECS attr when empty and lets the player detect the codec).
 _RENDITIONS: list[dict[str, Any]] = [
     {
-        "name": "hls_v_",
+        # Named "hls_1M_" (not a real 1 Mbps encode — it's a lossless copy) purely so
+        # the stock spayee_dl.py works against this deployment with only its apkId
+        # changed: its default --quality 1M builds "hls_1M_.m3u8".
+        "name": "hls_1M_",
         "ff": ["-map", "0:v:0", "-c", "copy"],
         "isAudio": False,
         "bandwidth": 0,   # filled in from the measured source bitrate
