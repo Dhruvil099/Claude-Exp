@@ -122,7 +122,7 @@ export default function VideoPage({ params }: { params: { id: string } }) {
                         rel="noopener noreferrer"
                       >
                         <span className="resource-icon" aria-hidden="true">
-                          📄
+                          📎
                         </span>
                         <span className="resource-label">{r.label}</span>
                         <span className="resource-ext" aria-hidden="true">
