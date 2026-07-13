@@ -793,14 +793,64 @@ a.card:focus-visible .card-play {
 }
 
 /* ---------- Resources / Attachments ---------- */
-/* Sits below the description card, above the player. Each resource is a
-   tappable chip/row: icon, label, external-link arrow. */
+/* Its own module below the description, above the player. Reads distinctly from
+   the description card: a labelled header (gradient icon + count) over a grid of
+   rich, tappable file/attachment cards, each with a gradient icon tile, label,
+   source host, and an external-link affordance. */
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
 
 .video-resources {
-  margin: 0 0 24px; /* same rhythm as .video-desc */
+  margin: 0 0 24px; /* same vertical rhythm as .video-desc */
 }
-.video-resources .video-desc-label {
-  margin-bottom: 12px;
+
+/* Module header — distinct from the description's plain eyebrow label. */
+.resources-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 14px;
+}
+.resources-head-icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  color: var(--accent-text);
+  background: var(--accent-soft);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+.resources-head-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent-text);
+}
+.resources-count {
+  flex: none;
+  min-width: 20px;
+  padding: 1px 8px;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+  color: var(--accent-text);
+  background: var(--accent-soft);
+  border: 1px solid var(--border);
+  border-radius: 999px;
 }
 
 .resource-list {
@@ -808,66 +858,132 @@ a.card:focus-visible .card-play {
   margin: 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
 }
 
 .resource-card {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 14px;
+  gap: 14px;
+  padding: 14px 16px;
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-sm);
   color: var(--text);
-  text-decoration: none;
-  min-width: 0; /* let the label ellipsize inside the grid track */
+  overflow: hidden;
+  min-width: 0; /* let inner text ellipsize inside the grid track */
   transition:
-    background 0.15s ease,
-    border-color 0.15s ease,
-    transform 0.15s ease,
-    box-shadow 0.15s ease;
+    background 0.16s ease,
+    border-color 0.16s ease,
+    transform 0.16s ease,
+    box-shadow 0.16s ease;
 }
-.resource-card:hover {
+/* Never underline the card's contents on hover (overrides global a:hover). */
+.resource-card,
+.resource-card:hover,
+.resource-card:focus,
+.resource-card:focus-visible {
+  text-decoration: none;
+}
+/* Accent edge that fills in on hover/focus — the attachment "spine". */
+.resource-card::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--gradient-accent);
+  opacity: 0;
+  transition: opacity 0.16s ease;
+}
+.resource-card:hover,
+.resource-card:focus-visible {
   background: var(--panel-2);
   border-color: var(--border-strong);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md), 0 0 0 1px var(--accent-soft);
 }
-.resource-card:hover .resource-ext {
-  color: var(--accent-text);
-  transform: translate(1px, -1px);
+.resource-card:hover::before,
+.resource-card:focus-visible::before {
+  opacity: 1;
 }
 
+/* Gradient icon tile — the distinctive "file" identity. White SVG glyph. */
 .resource-icon {
   flex: none;
   display: grid;
   place-items: center;
-  width: 34px;
-  height: 34px;
-  font-size: 16px;
-  background: var(--panel-2);
-  border: 1px solid var(--border);
+  width: 42px;
+  height: 42px;
+  color: #fff;
   border-radius: var(--radius-sm);
+  background: var(--gradient-accent);
+  box-shadow: 0 4px 12px -4px var(--accent-glow);
+  transition: transform 0.16s ease, box-shadow 0.16s ease;
+}
+.resource-icon svg {
+  display: block;
+}
+.resource-card:hover .resource-icon,
+.resource-card:focus-visible .resource-icon {
+  transform: scale(1.05);
+  box-shadow: 0 6px 16px -4px var(--accent-glow);
 }
 
-.resource-label {
+/* Text block: label over source host. */
+.resource-body {
   flex: 1;
   min-width: 0;
-  font-size: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.resource-label {
+  min-width: 0;
+  font-size: 14.5px;
   font-weight: 600;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.resource-meta {
+  min-width: 0;
+  font-size: 12px;
+  color: var(--muted);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+/* External-link affordance — a round button that lights up on hover. */
 .resource-ext {
   flex: none;
-  color: var(--muted);
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
   font-size: 14px;
-  transition: color 0.15s ease, transform 0.15s ease;
+  color: var(--muted);
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  transition:
+    color 0.16s ease,
+    background 0.16s ease,
+    border-color 0.16s ease,
+    transform 0.16s ease;
+}
+.resource-card:hover .resource-ext,
+.resource-card:focus-visible .resource-ext {
+  color: #fff;
+  background: var(--accent);
+  border-color: var(--accent);
+  transform: translate(1px, -1px);
 }
 
 /* ---------- Player ---------- */

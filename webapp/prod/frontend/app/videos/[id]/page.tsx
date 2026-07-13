@@ -13,6 +13,16 @@ import { Id } from "../../../convex/_generated/dataModel";
 // Global platform apkId (public, baked into the player — exactly like window.apkId).
 const APK_ID = process.env.NEXT_PUBLIC_APK_ID ?? "";
 
+/** Best-effort readable host for a resource URL (e.g. "drive.google.com").
+ *  Returns "" for relative/invalid URLs so the UI can fall back gracefully. */
+function hostFromUrl(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return "";
+  }
+}
+
 export default function VideoPage({ params }: { params: { id: string } }) {
   const videoId = params.id as Id<"videos">;
   // Display metadata only — no secrets, no URLs.
@@ -110,27 +120,83 @@ export default function VideoPage({ params }: { params: { id: string } }) {
               </section>
             ) : null}
             {video.resources?.length ? (
-              <section className="video-resources" aria-label="Resources">
-                <h2 className="video-desc-label">Resources</h2>
+              <section className="video-resources" aria-labelledby="resources-heading">
+                <div className="resources-head">
+                  <span className="resources-head-icon" aria-hidden="true">
+                    <svg
+                      viewBox="0 0 24 24"
+                      width="16"
+                      height="16"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M21.44 11.05 12.25 20.24a5 5 0 0 1-7.07-7.07l9.19-9.19a3.5 3.5 0 0 1 4.95 4.95l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
+                    </svg>
+                  </span>
+                  <h2 id="resources-heading" className="resources-head-title">
+                    Attachments
+                  </h2>
+                  <span className="resources-count" aria-hidden="true">
+                    {video.resources.length}
+                  </span>
+                </div>
                 <ul className="resource-list">
-                  {video.resources.map((r, i) => (
-                    <li key={i}>
-                      <a
-                        className="resource-card"
-                        href={r.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        <span className="resource-icon" aria-hidden="true">
-                          📎
-                        </span>
-                        <span className="resource-label">{r.label}</span>
-                        <span className="resource-ext" aria-hidden="true">
-                          ↗
-                        </span>
-                      </a>
-                    </li>
-                  ))}
+                  {video.resources.map((r, i) => {
+                    const host = hostFromUrl(r.url);
+                    return (
+                      <li key={i}>
+                        <a
+                          className="resource-card"
+                          href={r.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          <span className="resource-icon" aria-hidden="true">
+                            <svg
+                              viewBox="0 0 24 24"
+                              width="20"
+                              height="20"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            >
+                              <path d="M14 3v4a1 1 0 0 0 1 1h4" />
+                              <path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z" />
+                              <line x1="9" y1="13" x2="15" y2="13" />
+                              <line x1="9" y1="17" x2="13" y2="17" />
+                            </svg>
+                          </span>
+                          <span className="resource-body">
+                            <span className="resource-label">{r.label}</span>
+                            <span className="resource-meta">
+                              {host ? host : "External link"}
+                              <span className="sr-only"> (opens in a new tab)</span>
+                            </span>
+                          </span>
+                          <span className="resource-ext" aria-hidden="true">
+                            <svg
+                              viewBox="0 0 24 24"
+                              width="15"
+                              height="15"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2.2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            >
+                              <path d="M7 17 17 7" />
+                              <path d="M8 7h9v9" />
+                            </svg>
+                          </span>
+                        </a>
+                      </li>
+                    );
+                  })}
                 </ul>
               </section>
             ) : null}
